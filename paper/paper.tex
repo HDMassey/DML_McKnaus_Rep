@@ -1,0 +1,143 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{natbib}
+\usepackage{setspace}
+
+\onehalfspacing
+\newcommand{\sym}[1]{\rlap{#1}}
+
+\title{Replication of Table 4 from Knaus (2022)}
+\author{Hunter Massey}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+This study replicates \textbf{Double machine learning-based programme evaluation under unconfoundedness} written by \textbf{Michael C. Knaus} and published in \textbf{The Econometrics Journal in 2022}. The paper studies \textbf{the causal effects of Swiss active labor market programs on later employment outcomes}.
+
+The contribution of this paper is that it gets around the following challenge: \textbf{people are not randomly assigned to different labor market programs, so simple comparisons across programs may be biased by differences in background characteristics, employment history, caseworker assignment, and local labor market conditions}. It does this by \textbf{using double machine learning under an unconfoundedness assumption, where machine learning estimates the nuisance functions and doubly robust scores are used to estimate causal treatment effects}.
+
+This replication focuses on \textbf{Table 4, Group Average Treatment Effects} from the original paper. Specifically, the paper reports that \textbf{the effects of active labor market programs differ across gender, foreigner status, and employability groups, with job search assistance generally showing weaker effects than vocational, computer, and language programs}.
+
+\section{Data}
+
+The data are \textbf{the Swiss Active Labor Market Policy Evaluation Dataset from SwissUbase/FORSbase} and contain information on \textbf{unemployed individuals in Switzerland, their demographic characteristics, labor market history, caseworker characteristics, treatment assignment, and monthly employment outcomes}. The cleaned sample produced by my pipeline is summarized in Table \ref{tab:summary}.
+
+\input{../output/tables/summary_stats.tex}
+
+The data were originally collected by \textbf{Swiss administrative and survey sources made available through SwissUbase/FORSbase}. The key variables used in the replication are \textbf{the treatment variable indicating no program, job search, vocational training, computer training, or language training; the outcome measuring total months employed after program start; and a covariate matrix containing demographic variables, employment history, employability, caseworker characteristics, previous occupation, qualifications, and unemployment history}.
+
+The original code is written in \textbf{R} and this replication reproduces the analysis in \textbf{R}. The raw data are restricted-use, so the GitHub repository does not include the raw CSV. Instead, the repository includes an \texttt{input/README.md} file explaining how to request access and where to place the raw data so that the pipeline can be rerun from scratch.
+
+\section{Methods}
+
+The primary method is \textbf{double machine learning with augmented inverse probability weighting}, which does \textbf{causal program evaluation by using machine learning to adjust for observed confounders while still targeting treatment effects rather than prediction accuracy alone}.
+
+The method predicts/identifies \textbf{average and group average treatment effects of different labor market programs relative to no program} by exploiting \textbf{selection on observables, also called unconfoundedness}. In plain English, the identifying assumption is that after controlling for the rich set of observed covariates, assignment to a program is as good as random.
+
+The estimating equation used in the paper is shown below:
+
+\begin{equation}
+\hat{\Gamma}_{i,w}
+=
+\hat{\mu}(w, X_i)
++
+\frac{D_i(w)\left(Y_i - \hat{\mu}(w, X_i)\right)}
+{\hat{e}_w(X_i)}.
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $Y_i$ is \textbf{the outcome, measured as the number of months employed after the program or pseudo-program start date}
+    \item $D_i(w)$ is \textbf{an indicator for whether individual $i$ received treatment $w$}
+    \item $X_i$ is \textbf{the vector of pre-treatment controls}
+    \item $\hat{\mu}(w, X_i)$ is \textbf{the machine-learning prediction of the outcome under treatment $w$}
+    \item $\hat{e}_w(X_i)$ is \textbf{the machine-learning prediction of the probability of receiving treatment $w$}
+\end{itemize}
+
+This equation is the doubly robust score for the average potential outcome under treatment $w$. The first part, $\hat{\mu}(w, X_i)$, predicts what an individual's outcome would be under treatment $w$. The second part adjusts that prediction using the observed prediction error for people who actually received treatment $w$, weighted by the inverse of the estimated treatment probability. This connects directly to the DML material from class: machine learning is used for the nuisance functions, but the final object is a causal score.
+
+For Table 4, the relevant treatment-effect pseudo-outcome is:
+
+\begin{equation}
+\hat{\Delta}_{i,w,w'}
+=
+\hat{\Gamma}_{i,w}
+-
+\hat{\Gamma}_{i,w'}.
+\end{equation}
+
+where $w'$ is the no-program group. I then regress these treatment-effect pseudo-outcomes on subgroup indicators for female, foreigner status, and employability. This recreates the structure of Table 4.
+
+\section{Replication Results}
+
+The following is the replicated table/figure/results.
+
+\input{../output/tables/table4_replication.tex}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../output/figures/table4_replication_output.png}
+    \caption{Replication of Table 4: Group average treatment effects}
+\end{figure}
+
+The main thing to point out is \textbf{that the replicated table closely matches the structure, signs, and broad magnitudes of the published Table 4}. The results are not identical, but the overall pattern is similar: job search assistance has weaker effects than the other active labor market programs, while vocational, computer, and language programs generally show larger gains relative to no program.
+
+This result tells us in plain English that \textbf{active labor market programs do not have the same effect for every group. Treatment effects vary by gender, foreigner status, and employability, which is why group average treatment effects are useful}. Instead of reporting one average effect for everyone, Table 4 shows how estimated program impacts differ across types of workers.
+
+Compared to the original paper, the replicated estimate is \textbf{close but not exactly the same} as the published estimate. Possible reasons for this include \textbf{the slightly different cleaned sample, the simulated pseudo-start date assignment for the no-program group, and the fact that my replication uses fixed generalized random forests rather than the fully tuned honest random forest specification used by Knaus}. Since the final table is based on DML pseudo-outcomes, small differences in data construction and nuisance-function estimation can change the final subgroup estimates.
+
+\section{Challenges in Replication}
+
+The challenges in replicating the results were the following:
+
+\begin{itemize}
+    \item \textbf{The main data cleaning challenge was reconstructing the analysis sample from the raw Swiss ALMP data. I had to restrict the sample, remove treatment categories not used in the paper, construct the covariates, define the treatment variable, and construct the employment outcome window.}
+    \item \textbf{The main software and package issue was computational time. The fully tuned random forest version can take many hours, so I used generalized random forests with fixed parameters to keep the replication feasible.}
+    \item \textbf{The main missing documentation issue was that the complete original data-preparation file was not available in my working files. This made it harder to exactly reproduce the paper's reported sample size.}
+    \item \textbf{The main sample construction issue was assigning pseudo-start dates to the no-program group. Treated individuals have observed program start timing, but untreated individuals do not, so the no-program group needs simulated timing to define comparable outcome windows.}
+\end{itemize}
+
+One important lesson from the replication process is that \textbf{reproducibility depends on much more than having estimation code. Small details in data cleaning, sample restrictions, random seeds, and nuisance-model settings can meaningfully affect the final results}.
+
+\section{Takeaways}
+
+The following would be the main takeaways of the paper:
+
+\begin{enumerate}
+    \item \textbf{Double machine learning combines flexible prediction methods with causal inference. The machine learning step estimates nuisance functions, while the doubly robust score is used to estimate causal treatment effects.}
+    \item \textbf{Swiss active labor market programs have heterogeneous effects. The estimated impact of a program differs across gender, foreigner status, and employability groups.}
+    \item \textbf{Replication is highly sensitive to data construction. In this project, the pseudo-start date for the no-program group and the choice of nuisance learners were especially important.}
+\end{enumerate}
+
+Overall, the paper contributes to the literature by \textbf{showing how double machine learning can be used for program evaluation with multiple treatments, rich observed confounders, and heterogeneous treatment effects}.
+
+\section{Extensions}
+
+The following would be possible extensions of the paper:
+
+\begin{itemize}
+    \item \textbf{Run the fully tuned honest random forest specification from the original paper and compare it directly with the fixed-forest replication.}
+    \item \textbf{Replicate additional results from the paper, such as the average treatment effects or policy-learning results.}
+    \item \textbf{Study additional dimensions of heterogeneity, such as age, previous income, unemployment history, or local labor market conditions.}
+\end{itemize}
+
+Future work could also explore \textbf{how sensitive the results are to different pseudo-start assignment methods for the no-program group, since that step is central to aligning treated and untreated individuals}.
+
+\begin{thebibliography}{9}
+
+\bibitem[Knaus(2022)]{knaus2022}
+Knaus, Michael C. 2022.
+``Double machine learning-based programme evaluation under unconfoundedness.''
+\textit{The Econometrics Journal} 25(3): 602--627.
+
+\end{thebibliography}
+
+\end{document}

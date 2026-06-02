@@ -1,0 +1,28 @@
+# Regenerable intermediate files
+temp/
+
+# Restricted/raw data - not committed
+input/1203_ALMP_Data_E_v1.0.0.csv
+input/swissubase_1203_1_0.zip
+
+# R scratch files
+.Rhistory
+.RData
+.Rproj.user/
+*.RData
+*.rds
+
+# Python/cache/system files
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
