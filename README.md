@@ -71,6 +71,13 @@ devtools::install_github("MCKnaus/causalDML", upgrade = "never")
 Clone the repository, place the restricted data in `input/`, and run:
 
 ```bash
+$env:Path = "C:\rtools44\usr\bin;$env:Path"
+$env:Path = "C:\Program Files\R\R-4.4.0\bin;C:\rtools44\usr\bin;$env:Path"
+git clone https://github.com/HDMassey/DML_McKnaus_Rep.git DML_McKnaus
+
+Make sure to request the dataset from the Swiss  base website https://www.swissubase.ch/
+put the raw data set with ~100k observation in the input folder
+
 make
 ```
 
