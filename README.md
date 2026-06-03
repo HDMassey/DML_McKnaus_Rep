@@ -83,20 +83,6 @@ make
 
 The full first run may take a long time because the DML step uses generalized random forests. The DML object is cached in `temp/DML_forest_500.rds` so reruns are faster unless `make clean` is used.
 
-On Windows without GNU Make, the equivalent manual commands are:
-
-```powershell
-Rscript code/preprocess.R
-Rscript code/analysis.R
-cd paper
-pdflatex paper.tex
-bibtex paper
-pdflatex paper.tex
-pdflatex paper.tex
-cd ..
-```
-
-If `Rscript` is not on your path, use the full path to `Rscript.exe`.
 
 ## Outputs
 
